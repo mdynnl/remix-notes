@@ -1,12 +1,13 @@
-import type { ActionFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, SerializeFrom } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 import { useEffect, useRef } from "react";
 
-import { createNote } from "~/models/note.server";
+import { createOrUpdateNote } from "~/models/note.server";
+import { loader } from "~/routes/notes.$noteId.edit";
 import { requireUserId } from "~/session.server";
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+export const action = async ({ params, request }: ActionFunctionArgs) => {
   const userId = await requireUserId(request);
 
   const formData = await request.formData();
@@ -27,12 +28,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  const note = await createNote({ body, title, userId });
+  const note = await createOrUpdateNote({
+    id: params.noteId,
+    body,
+    title,
+    userId,
+  });
 
   return redirect(`/notes/${note.id}`);
 };
 
-export default function NewNotePage() {
+export default function NewNotePage({
+  data,
+}: {
+  data?: SerializeFrom<typeof loader>;
+}) {
   const actionData = useActionData<typeof action>();
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -61,6 +71,7 @@ export default function NewNotePage() {
           <input
             ref={titleRef}
             name="title"
+            defaultValue={data?.note.title}
             className="flex-1 rounded-md border-2 border-blue-500 px-3 text-lg leading-loose"
             aria-invalid={actionData?.errors?.title ? true : undefined}
             aria-errormessage={
@@ -81,6 +92,7 @@ export default function NewNotePage() {
           <textarea
             ref={bodyRef}
             name="body"
+            defaultValue={data?.note.body}
             rows={8}
             className="w-full flex-1 rounded-md border-2 border-blue-500 px-3 py-2 text-lg leading-6"
             aria-invalid={actionData?.errors?.body ? true : undefined}

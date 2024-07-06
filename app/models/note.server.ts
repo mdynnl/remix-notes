@@ -1,4 +1,4 @@
-import type { User, Note } from "@prisma/client";
+import type { Note, User } from "@prisma/client";
 
 import { prisma } from "~/db.server";
 
@@ -42,6 +42,34 @@ export function createNote({
       },
     },
   });
+}
+
+export function updateNote({
+  id,
+  body,
+  title,
+  userId,
+}: Pick<Note, "id" | "body" | "title"> & {
+  userId: User["id"];
+}) {
+  return prisma.note.update({
+    where: { id },
+    data: {
+      title,
+      body,
+      user: {
+        connect: {
+          id: userId,
+        },
+      },
+    },
+  });
+}
+
+export function createOrUpdateNote(
+  data: Parameters<typeof createNote>[0] | Parameters<typeof updateNote>[0],
+) {
+  return "id" in data && data.id ? updateNote(data) : createNote(data);
 }
 
 export function deleteNote({
